@@ -1,0 +1,10 @@
+{
+    "learning rate": 0.005, 
+    "epochs": 1000, 
+    "layers": [8, 20, 1], 
+    "loss": "binary_crossentropy",
+    "activation": ["relu", "sigmoid"], 
+    "metrics": ["accuracy"],
+    "batch size": 32,
+    "training slice": 0.6
+}
