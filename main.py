@@ -15,11 +15,12 @@ import tensorflow as tf
 from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Flatten, MaxPool2D, Conv2D, Dense, Reshape, Dropout
-from keras.utils import np_utils, plot_model
+from keras.utils import np_utils, plot_model, to_categorical
 from keras.datasets import mnist
 from keras.optimizers import SGD, Adam
 from keras import losses
 from keras.wrappers.scikit_learn import KerasClassifier
+from keras.metrics import CategoricalAccuracy
 
 import json
 
@@ -36,7 +37,7 @@ def create_model(hyperparameters):
             # add layers
             model.add( Dense( hyperparameters['layers'][i], activation = hyperparameters["activation"][i-1] ) )
         # compile it
-        model.compile(loss = hyperparameters['loss'], optimizer = Adam(learning_rate=hyperparameters['learning rate']), metrics=hyperparameters['metrics'])
+        model.compile(loss = hyperparameters['loss'], optimizer = Adam(learning_rate=hyperparameters['learning rate']), metrics=hyperparameters['metrics'] )
         # return model
         return model
 
@@ -46,7 +47,7 @@ def plot(history, epochs, ax = plt):
     x = np.arange(0, epochs)
     print(history.history.keys())
     # plot accruacy
-    ax.plot(x, history.history["accuracy"], label="train acc")
+    ax.plot(x, history.history["accuracy"], label="train acc")() 
 
 # save model
 def save(model, file = './model/model.json'):
@@ -88,6 +89,7 @@ def main(args):
     x_data, y_data = matrix[:, :-1].astype(np.float64), matrix[:, -1]
     # norazlize x_data
     x_data = normalize(x_data)
+
     # data slices
     training_slice = hyperparameters["training slice"]
     validation_slice = hyperparameters["validation slice"]
@@ -102,6 +104,8 @@ def main(args):
     encoder.fit(matrix[:, -1])
     # transfrom y_train and y_test to numeric
     y_train, y_test, y_validation = encoder.transform(y_train), encoder.transform(y_test), encoder.transform(y_validation)
+    # transform to categorical
+    y_train, y_test, y_validation = to_categorical(y_train, len(encoder.classes_)), to_categorical(y_test, len(encoder.classes_)), to_categorical(y_validation, len(encoder.classes_))
     
     # create model
     model=create_model(hyperparameters)
@@ -111,23 +115,30 @@ def main(args):
     result = model.evaluate(x_test,y_test, batch_size = hyperparameters["batch size"] )
 
     # print results
-    print('Model evaluation => Loss: ' + str( result[0] ) + " , Accuracy: " + str( result[1]*100 ) + "%")
-    
+    print('Model evaluation => Loss: ' + str( result[0] ) + 'Accuracy: ' + str( result[1]*100 ) + '%')
+
     # plot accuracy
-    fig, axes = plt.subplots(2, 1)
+    fig, axes = plt.subplots(3, 1)
     # plot accuracy
     axes[0].plot(history.history["accuracy"], color="blue")
     axes[0].plot(history.history["val_accuracy"], color="green")
     axes[0].set_xlabel("Epoch")
     axes[0].set_ylabel("Accuracy")
-    axes[0].legend(['train', 'test'], loc='lower right')
-    # plot loss
-    axes[1].plot(history.history["loss"], color="blue")
-    axes[1].plot(history.history["val_loss"], color="green")
+    axes[0].legend(['train', 'validation'], loc='lower right')
+    # plot categorical accuracy
+    axes[1].plot(history.history["categorical_accuracy"], color="blue")
+    axes[1].plot(history.history["val_categorical_accuracy"], color="green")
     axes[1].set_xlabel("Epoch")
-    axes[1].set_ylabel("Loss")
-    axes[1].legend(['train', 'validation'], loc='upper right')
+    axes[1].set_ylabel("Categorical Accuracy")
+    axes[1].legend(['train', 'validation'], loc='lower right')
+    # plot loss
+    axes[2].plot(history.history["loss"], color="blue")
+    axes[2].plot(history.history["val_loss"], color="green")
+    axes[2].set_xlabel("Epoch")
+    axes[2].set_ylabel("Loss")
+    axes[2].legend(['train', 'validation'], loc='upper right')
     # show plot
+    plt.savefig('./results/results.png')
     plt.show()
 
     ###### Save Model ########################################################################################################################################################################################
@@ -135,6 +146,7 @@ def main(args):
     save(model)
     # save weights
     model.save_weights("./model/model.h5")
+    print("Model Saved.")
     ###### Save Model ########################################################################################################################################################################################
     
 
