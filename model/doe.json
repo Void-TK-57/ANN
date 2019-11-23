@@ -1,9 +1,9 @@
 {
     "learning rate": 0.005, 
-    "epochs": 400, 
-    "layers": [8, 20, 1], 
-    "loss": "binary_crossentropy",
-    "activation": ["relu", "sigmoid"], 
+    "epochs": 10000, 
+    "layers": [13, 3, 20, 1], 
+    "loss": "mean_squared_error",
+    "activation": ["tanh", "sigmoid", "linear"], 
     "metrics": ["accuracy"],
     "batch size": 32,
     "training slice": 0.6,
