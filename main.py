@@ -64,7 +64,7 @@ def normalize(x):
         mean_ = np.mean(column)
         std_ = np.std(column)
         # function to apply the normalization on each value
-        g = lambda item: (item - mean_)/std_
+        g = lambda item: (item - mean_)/std_ if std_ != 0 else (item - mean_)
         # apply to the column
         column = np.apply_along_axis(g , 0, column)
         # return the column
@@ -77,7 +77,7 @@ def normalize(x):
     
 def main(args):
     # read data
-    data = pd.read_csv("./data/" + args[2], sep = ";", index_col = 0)
+    data = pd.read_csv("./data/" + args[2], sep = ",", index_col = 0)
 
     # load hyper paramters
     with open("./model/" + args[1]) as json_file:
@@ -90,15 +90,17 @@ def main(args):
     # norazlize x_data
     x_data = normalize(x_data)
 
+
     # data slices
     training_slice = hyperparameters["training slice"]
     validation_slice = hyperparameters["validation slice"]
     test_slice = 1.0 - training_slice - validation_slice
     # from data get train and rest
-    x_train, x_rest, y_train, y_rest = train_test_split(x_data, y_data, train_size = training_slice)
+    x_train, x_test, y_train, y_rest = train_test_split(x_data, y_data, train_size = training_slice)
     # from rest get validation and test
-    x_validation, x_test, y_validation, y_test = train_test_split(x_rest, y_rest, train_size = validation_slice/(validation_slice + test_slice) )
+    x_validation, x_test, y_validation, y_test = train_test_split(x_test, y_rest, train_size = validation_slice/(validation_slice + test_slice) )
 
+    '''
     # encoder for the class
     encoder = LabelEncoder()
     encoder.fit(matrix[:, -1])
@@ -106,7 +108,8 @@ def main(args):
     y_train, y_test, y_validation = encoder.transform(y_train), encoder.transform(y_test), encoder.transform(y_validation)
     # transform to categorical
     y_train, y_test, y_validation = to_categorical(y_train, len(encoder.classes_)), to_categorical(y_test, len(encoder.classes_)), to_categorical(y_validation, len(encoder.classes_))
-    
+    '''
+
     # create model
     model=create_model(hyperparameters)
     # train model
@@ -118,34 +121,36 @@ def main(args):
     print('Model evaluation => Loss: ' + str( result[0] ) + 'Accuracy: ' + str( result[1]*100 ) + '%')
 
     # plot accuracy
-    fig, axes = plt.subplots(3, 1)
+    fig, axes = plt.subplots(2, 1)
     # plot accuracy
     axes[0].plot(history.history["accuracy"], color="blue")
     axes[0].plot(history.history["val_accuracy"], color="green")
     axes[0].set_xlabel("Epoch")
     axes[0].set_ylabel("Accuracy")
     axes[0].legend(['train', 'validation'], loc='lower right')
+    '''
     # plot categorical accuracy
     axes[1].plot(history.history["categorical_accuracy"], color="blue")
     axes[1].plot(history.history["val_categorical_accuracy"], color="green")
     axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("Categorical Accuracy")
     axes[1].legend(['train', 'validation'], loc='lower right')
+    '''
     # plot loss
-    axes[2].plot(history.history["loss"], color="blue")
-    axes[2].plot(history.history["val_loss"], color="green")
-    axes[2].set_xlabel("Epoch")
-    axes[2].set_ylabel("Loss")
-    axes[2].legend(['train', 'validation'], loc='upper right')
+    axes[1].plot(history.history["loss"], color="blue")
+    axes[1].plot(history.history["val_loss"], color="green")
+    axes[1].set_xlabel("Epoch")
+    axes[1].set_ylabel("Loss")
+    axes[1].legend(['train', 'validation'], loc='upper right')
     # show plot
-    plt.savefig('./results/results.png')
+    plt.savefig('./results/' + hyperparameters['name'] + '.png')
     plt.show()
 
     ###### Save Model ########################################################################################################################################################################################
     # save model
     save(model)
     # save weights
-    model.save_weights("./model/model.h5")
+    model.save_weights('./model/' + hyperparameters['name'] + '.h5')
     print("Model Saved.")
     ###### Save Model ########################################################################################################################################################################################
     
